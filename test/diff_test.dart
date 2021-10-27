@@ -102,18 +102,24 @@ void main() {
   group('Diff In Days Filtered', () {
     test('Diff In Days Filtered Positive With Mutated', () {
       expect(
-        ticker.diffInDaysFiltered((Ticker ticker) {
-          return ticker.weekday == 1;
-        }, ticker.copy().endOfMonth()),
+        ticker.diffInDaysFiltered(
+          (Ticker ticker) {
+            return ticker.weekday == 1;
+          },
+          ticker.copy().endOfMonth(),
+        ),
         5,
       );
     });
 
     test('Diff In Days Filtered Positive With Second Subject', () {
       expect(
-        ticker.diffInDaysFiltered((Ticker ticker) {
-          return ticker.weekday == Ticker.SUNDAY;
-        }, Ticker.createFromDate(year: 2000, month: 1, day: 31)),
+        ticker.diffInDaysFiltered(
+          (Ticker ticker) {
+            return ticker.weekday == Ticker.SUNDAY;
+          },
+          Ticker.createFromDate(year: 2000, month: 1, day: 31),
+        ),
         5,
       );
     });
@@ -122,10 +128,57 @@ void main() {
       ticker = Ticker.createFromDate(year: 2000, month: 1, day: 31);
 
       expect(
-        ticker.diffInDaysFiltered((Ticker ticker) {
-          return ticker.weekday == Ticker.SUNDAY;
-        }, ticker.copy().startOfMonth()),
+        ticker.diffInDaysFiltered(
+          (Ticker ticker) {
+            return ticker.weekday == Ticker.SUNDAY;
+          },
+          ticker.copy().startOfMonth(),
+        ),
         5,
+      );
+    });
+
+    test('Diff In Days Filtered Negative No Sign With Second Object', () {
+      ticker = Ticker.createFromDate(year: 2000, month: 1, day: 31);
+
+      expect(
+        ticker.diffInDaysFiltered(
+          (Ticker ticker) {
+            return ticker.weekday == Ticker.SUNDAY;
+          },
+          Ticker.createFromDate(year: 2000, month: 1, day: 1),
+        ),
+        5,
+      );
+    });
+
+    test('Diff In Days Filtered Negative With Sign With Mutated', () {
+      ticker = Ticker.createFromDate(year: 2000, month: 1, day: 31);
+
+      expect(
+        ticker.diffInDaysFiltered(
+          (Ticker ticker) {
+            return ticker.weekday == 1;
+          },
+          ticker.copy().startOfMonth(),
+          false,
+        ),
+        -5,
+      );
+    });
+
+    test('Diff In Days Filtered Negative With Sign With Second Object', () {
+      ticker = Ticker.createFromDate(year: 2000, month: 1, day: 31);
+
+      expect(
+        ticker.diffInDaysFiltered(
+          (Ticker ticker) {
+            return ticker.weekday == Ticker.SUNDAY;
+          },
+          Ticker.createFromDate(year: 2000, month: 1, day: 1),
+          false,
+        ),
+        -5,
       );
     });
   });

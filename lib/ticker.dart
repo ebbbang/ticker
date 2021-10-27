@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:intl/intl.dart';
 import 'package:ticker/month.dart';
+import 'package:ticker/weekday.dart';
 
 class Ticker {
   late DateTime _dateTime;
@@ -102,33 +103,50 @@ class Ticker {
     return absolute ? diff.abs() : diff;
   }
 
-  int diffInDaysFiltered(bool Function(Ticker ticker) callback,
-      [var dateTime, bool absolute = true]) {
+  int diffInDaysFiltered(
+    bool Function(Ticker ticker) callback, [
+    var dateTime,
+    bool absolute = true,
+  ]) {
     Ticker otherTicker = Ticker(dateTime);
 
     int diff = 0;
 
     int totalDays = diffInDays(otherTicker);
 
-    late Ticker startDate;
+    Ticker startDate = this.copy();
+
     if (microsecondsSinceEpoch < otherTicker.microsecondsSinceEpoch) {
-      startDate = this.copy();
-    } else {
-      startDate = otherTicker.copy();
-    }
+      for (int i = 0; i <= totalDays; i++) {
+        if (callback(startDate)) {
+          diff++;
+        }
 
-    for (int i = 0; i <= totalDays; i++) {
-      if (callback(startDate)) {
-        diff++;
+        startDate.addDay();
       }
+    } else {
+      for (int i = totalDays; i >= 0; i--) {
+        if (callback(startDate)) {
+          diff--;
+        }
 
-      startDate.addDay();
+        startDate.subDay();
+      }
     }
 
     return absolute ? diff.abs() : diff;
   }
 
-  static Ticker createFromDate({int? year, int? month, int? day}) {
+  static Ticker createFromDate({
+    int? year,
+    int? month,
+    int? day,
+    int? hour,
+    int? minute,
+    int? second,
+    int? millisecond,
+    int? microsecond,
+  }) {
     DateTime now = DateTime.now();
 
     return Ticker(
@@ -136,6 +154,11 @@ class Ticker {
         year ?? now.year,
         month ?? now.month,
         day ?? now.day,
+        hour ?? now.hour,
+        minute ?? now.minute,
+        second ?? now.second,
+        millisecond ?? now.millisecond,
+        microsecond ?? now.microsecond,
       ),
     );
   }
@@ -161,7 +184,7 @@ class Ticker {
   }
 
   Ticker addYears([int years = 1]) {
-    addInterval(years: years);
+    add(years: years);
 
     return this;
   }
@@ -173,7 +196,7 @@ class Ticker {
   }
 
   Ticker addQuarters([int quarters = 1]) {
-    addInterval(months: quarters * 3);
+    add(months: quarters * 3);
 
     return this;
   }
@@ -185,7 +208,7 @@ class Ticker {
   }
 
   Ticker addMonths([int months = 1]) {
-    addInterval(months: months);
+    add(months: months);
 
     return this;
   }
@@ -219,7 +242,7 @@ class Ticker {
   }
 
   Ticker addMonthsWithOverflow([int months = 1]) {
-    addInterval(months: months);
+    add(months: months);
 
     return this;
   }
@@ -231,7 +254,7 @@ class Ticker {
   }
 
   Ticker addWeeks([int weeks = 1]) {
-    addInterval(days: weeks * 7);
+    add(days: weeks * 7);
 
     return this;
   }
@@ -243,7 +266,32 @@ class Ticker {
   }
 
   Ticker addDays([int days = 1]) {
-    addInterval(days: days);
+    add(days: days);
+
+    return this;
+  }
+
+  Ticker addWeekDay() {
+    addWeekDays(1);
+
+    return this;
+  }
+
+  Ticker addWeekDays([int weekdays = 1]) {
+    int addedDays = 0;
+
+    while (addedDays < weekdays.abs()) {
+      if (weekdays.isNegative) {
+        sub(days: 1);
+      } else {
+        add(days: 1);
+      }
+
+      if (_dateTime.weekday != Weekday.SATURDAY &&
+          _dateTime.weekday != Weekday.SUNDAY) {
+        addedDays++;
+      }
+    }
 
     return this;
   }
@@ -255,7 +303,7 @@ class Ticker {
   }
 
   Ticker addHours([int hours = 1]) {
-    addInterval(hours: hours);
+    add(hours: hours);
 
     return this;
   }
@@ -267,7 +315,7 @@ class Ticker {
   }
 
   Ticker subYears([int years = 1]) {
-    subInterval(years: years);
+    sub(years: years);
 
     return this;
   }
@@ -279,7 +327,7 @@ class Ticker {
   }
 
   Ticker subQuarters([int quarters = 1]) {
-    subInterval(months: quarters * 3);
+    sub(months: quarters * 3);
 
     return this;
   }
@@ -309,6 +357,16 @@ class Ticker {
     return this;
   }
 
+  Ticker subMonthWithOverflow([int months = 1]) {
+    return subMonthsWithOverflow(months);
+  }
+
+  Ticker subMonthsWithOverflow([int months = 1]) {
+    sub(months: months);
+
+    return this;
+  }
+
   Ticker subWeek() {
     subWeeks(1);
 
@@ -316,17 +374,19 @@ class Ticker {
   }
 
   Ticker subWeeks([int weeks = 1]) {
-    subInterval(days: weeks * 7);
+    sub(days: weeks * 7);
 
     return this;
   }
 
-  Ticker subMonthWithOverflow([int months = 1]) {
-    return subMonthsWithOverflow(months);
+  Ticker subDay() {
+    subDays(1);
+
+    return this;
   }
 
-  Ticker subMonthsWithOverflow([int months = 1]) {
-    subInterval(months: months);
+  Ticker subDays([int days = 1]) {
+    sub(days: days);
 
     return this;
   }
@@ -343,7 +403,7 @@ class Ticker {
     return this;
   }
 
-  Ticker addInterval({
+  Ticker add({
     int? years,
     int? months,
     int? days,
@@ -352,10 +412,29 @@ class Ticker {
     int? seconds,
     int? milliseconds,
     int? microseconds,
+    bool overflow = true,
   }) {
+    late int newMonth;
+
+    if (months == null) {
+      newMonth = _dateTime.month;
+    } else if (overflow == true) {
+      newMonth = _dateTime.month + months;
+    } else {
+      for (int i = 0; i < months; i++) {
+        _dateTime = _dateTime.add(
+          Duration(
+            days: Month.daysInMonth(_dateTime.year, _dateTime.month + 1),
+          ),
+        );
+      }
+
+      newMonth = _dateTime.month;
+    }
+
     _dateTime = new DateTime(
       years != null ? _dateTime.year + years : _dateTime.year,
-      months != null ? _dateTime.month + months : _dateTime.month,
+      newMonth,
       days != null ? _dateTime.day + days : _dateTime.day,
       hours != null ? _dateTime.hour + hours : _dateTime.hour,
       minutes != null ? _dateTime.minute + minutes : _dateTime.minute,
@@ -371,7 +450,7 @@ class Ticker {
     return this;
   }
 
-  Ticker subInterval({
+  Ticker sub({
     int? years,
     int? months,
     int? days,
@@ -421,6 +500,10 @@ class Ticker {
     );
 
     return this;
+  }
+
+  String format(String format) {
+    return DateFormat(format).format(_dateTime);
   }
 
   @override
