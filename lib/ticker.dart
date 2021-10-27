@@ -32,6 +32,10 @@ class Ticker {
     return _dateTime.day;
   }
 
+  int get weekday {
+    return _dateTime.weekday;
+  }
+
   int get hour {
     return _dateTime.hour;
   }
@@ -52,8 +56,8 @@ class Ticker {
     return _dateTime.microsecond;
   }
 
-  int get weekday {
-    return _dateTime.weekday;
+  int get microsecondsSinceEpoch {
+    return _dateTime.microsecondsSinceEpoch;
   }
 
   DateTime get dateTime {
@@ -93,9 +97,6 @@ class Ticker {
   int diffInDays([var dateTime, bool absolute = true]) {
     Ticker otherTicker = Ticker(dateTime);
 
-    print(this);
-    print(otherTicker);
-
     int diff = otherTicker.dateTime.difference(_dateTime).inDays;
 
     return absolute ? diff.abs() : diff;
@@ -109,7 +110,12 @@ class Ticker {
 
     int totalDays = diffInDays(otherTicker);
 
-    Ticker startDate = this.copy();
+    late Ticker startDate;
+    if (microsecondsSinceEpoch < otherTicker.microsecondsSinceEpoch) {
+      startDate = this.copy();
+    } else {
+      startDate = otherTicker.copy();
+    }
 
     for (int i = 0; i <= totalDays; i++) {
       if (callback(startDate)) {
@@ -149,37 +155,13 @@ class Ticker {
   }
 
   Ticker addYear() {
-    _dateTime = DateTime(
-      _dateTime.year + 1,
-      _dateTime.month,
-      _dateTime.day,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
+    addYears(1);
 
     return this;
   }
 
-  Ticker addMonth() {
-    addMonths(1);
-
-    return this;
-  }
-
-  Ticker addMonths(int months) {
-    _dateTime = DateTime(
-      _dateTime.year,
-      _dateTime.month + months,
-      _dateTime.day,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
+  Ticker addYears([int years = 1]) {
+    addInterval(years: years);
 
     return this;
   }
@@ -190,137 +172,20 @@ class Ticker {
     return this;
   }
 
-  Ticker addQuarters(int quarters) {
-    _dateTime = DateTime(
-      _dateTime.year,
-      _dateTime.month + (quarters * 3),
-      _dateTime.day,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
+  Ticker addQuarters([int quarters = 1]) {
+    addInterval(months: quarters * 3);
 
     return this;
   }
 
-  Ticker addWeek() {
-    addWeeks(1);
+  Ticker addMonth() {
+    addMonths(1);
 
     return this;
   }
 
-  Ticker addWeeks(int weeks) {
-    _dateTime = DateTime(
-      _dateTime.year,
-      _dateTime.month,
-      _dateTime.day + (weeks * 7),
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
-
-    return this;
-  }
-
-  Ticker addDay() {
-    addDays(1);
-
-    return this;
-  }
-
-  Ticker addDays(int days) {
-    _dateTime = DateTime(
-      _dateTime.year,
-      _dateTime.month,
-      _dateTime.day + days,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
-
-    return this;
-  }
-
-  Ticker addHour() {
-    addHours(1);
-
-    return this;
-  }
-
-  Ticker addHours(int hours) {
-    _dateTime = DateTime(
-      _dateTime.year,
-      _dateTime.month,
-      _dateTime.day,
-      _dateTime.hour + hours,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
-
-    return this;
-  }
-
-  Ticker subYear() {
-    _dateTime = DateTime(
-      _dateTime.year - 1,
-      _dateTime.month,
-      _dateTime.day,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
-
-    return this;
-  }
-
-  Ticker subQuarter() {
-    subQuarters(1);
-
-    return this;
-  }
-
-  Ticker subQuarters(int quarters) {
-    _dateTime = DateTime(
-      _dateTime.year,
-      _dateTime.month - (quarters * 3),
-      _dateTime.day,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
-
-    return this;
-  }
-
-  Ticker subWeek() {
-    subWeeks(1);
-
-    return this;
-  }
-
-  Ticker subWeeks(int weeks) {
-    _dateTime = DateTime(
-      _dateTime.year,
-      _dateTime.month,
-      _dateTime.day - (weeks * 7),
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
+  Ticker addMonths([int months = 1]) {
+    addInterval(months: months);
 
     return this;
   }
@@ -344,15 +209,77 @@ class Ticker {
 
     var newDay = min(_dateTime.day, Month.daysInMonth(newYear, newMonth));
 
-    _dateTime = new DateTime(
-        newYear,
-        newMonth,
-        newDay,
-        _dateTime.hour,
-        _dateTime.minute,
-        _dateTime.second,
-        _dateTime.millisecond,
-        _dateTime.microsecond);
+    setDateTime(year: newYear, month: newMonth, day: newDay);
+
+    return this;
+  }
+
+  Ticker addMonthWithOverflow([int months = 1]) {
+    return addMonthsWithOverflow(months);
+  }
+
+  Ticker addMonthsWithOverflow([int months = 1]) {
+    addInterval(months: months);
+
+    return this;
+  }
+
+  Ticker addWeek() {
+    addWeeks(1);
+
+    return this;
+  }
+
+  Ticker addWeeks([int weeks = 1]) {
+    addInterval(days: weeks * 7);
+
+    return this;
+  }
+
+  Ticker addDay() {
+    addDays(1);
+
+    return this;
+  }
+
+  Ticker addDays([int days = 1]) {
+    addInterval(days: days);
+
+    return this;
+  }
+
+  Ticker addHour() {
+    addHours(1);
+
+    return this;
+  }
+
+  Ticker addHours([int hours = 1]) {
+    addInterval(hours: hours);
+
+    return this;
+  }
+
+  Ticker subYear() {
+    subYears(1);
+
+    return this;
+  }
+
+  Ticker subYears([int years = 1]) {
+    subInterval(years: years);
+
+    return this;
+  }
+
+  Ticker subQuarter() {
+    subQuarters(1);
+
+    return this;
+  }
+
+  Ticker subQuarters([int quarters = 1]) {
+    subInterval(months: quarters * 3);
 
     return this;
   }
@@ -377,34 +304,19 @@ class Ticker {
 
     var newDay = min(_dateTime.day, Month.daysInMonth(newYear, newMonth));
 
-    _dateTime = new DateTime(
-        newYear,
-        newMonth,
-        newDay,
-        _dateTime.hour,
-        _dateTime.minute,
-        _dateTime.second,
-        _dateTime.millisecond,
-        _dateTime.microsecond);
+    setDateTime(year: newYear, month: newMonth, day: newDay);
 
     return this;
   }
 
-  Ticker addMonthWithOverflow([int months = 1]) {
-    return addMonthsWithOverflow(months);
+  Ticker subWeek() {
+    subWeeks(1);
+
+    return this;
   }
 
-  Ticker addMonthsWithOverflow([int months = 1]) {
-    _dateTime = new DateTime(
-      _dateTime.year,
-      _dateTime.month + months,
-      _dateTime.day,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
+  Ticker subWeeks([int weeks = 1]) {
+    subInterval(days: weeks * 7);
 
     return this;
   }
@@ -414,47 +326,98 @@ class Ticker {
   }
 
   Ticker subMonthsWithOverflow([int months = 1]) {
-    _dateTime = new DateTime(
-      _dateTime.year,
-      _dateTime.month - months,
-      _dateTime.day,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
+    subInterval(months: months);
 
     return this;
   }
 
   Ticker endOfMonth() {
-    int lastDay = Month.daysInMonth(_dateTime.year, _dateTime.month);
-
-    _dateTime = new DateTime(
-      _dateTime.year,
-      _dateTime.month,
-      lastDay,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
-    );
+    setDateTime(day: Month.daysInMonth(_dateTime.year, _dateTime.month));
 
     return this;
   }
 
   Ticker startOfMonth() {
+    setDateTime(day: 1);
+
+    return this;
+  }
+
+  Ticker addInterval({
+    int? years,
+    int? months,
+    int? days,
+    int? hours,
+    int? minutes,
+    int? seconds,
+    int? milliseconds,
+    int? microseconds,
+  }) {
     _dateTime = new DateTime(
-      _dateTime.year,
-      _dateTime.month,
-      1,
-      _dateTime.hour,
-      _dateTime.minute,
-      _dateTime.second,
-      _dateTime.millisecond,
-      _dateTime.microsecond,
+      years != null ? _dateTime.year + years : _dateTime.year,
+      months != null ? _dateTime.month + months : _dateTime.month,
+      days != null ? _dateTime.day + days : _dateTime.day,
+      hours != null ? _dateTime.hour + hours : _dateTime.hour,
+      minutes != null ? _dateTime.minute + minutes : _dateTime.minute,
+      seconds != null ? _dateTime.second + seconds : _dateTime.second,
+      milliseconds != null
+          ? _dateTime.millisecond + milliseconds
+          : _dateTime.millisecond,
+      microseconds != null
+          ? _dateTime.microsecond + microseconds
+          : _dateTime.microsecond,
+    );
+
+    return this;
+  }
+
+  Ticker subInterval({
+    int? years,
+    int? months,
+    int? days,
+    int? hours,
+    int? minutes,
+    int? seconds,
+    int? milliseconds,
+    int? microseconds,
+  }) {
+    _dateTime = new DateTime(
+      years != null ? _dateTime.year - years : _dateTime.year,
+      months != null ? _dateTime.month - months : _dateTime.month,
+      days != null ? _dateTime.day - days : _dateTime.day,
+      hours != null ? _dateTime.hour - hours : _dateTime.hour,
+      minutes != null ? _dateTime.minute - minutes : _dateTime.minute,
+      seconds != null ? _dateTime.second - seconds : _dateTime.second,
+      milliseconds != null
+          ? _dateTime.millisecond - milliseconds
+          : _dateTime.millisecond,
+      microseconds != null
+          ? _dateTime.microsecond - microseconds
+          : _dateTime.microsecond,
+    );
+
+    return this;
+  }
+
+  Ticker setDateTime({
+    int? year,
+    int? month,
+    int? day,
+    int? hour,
+    int? minute,
+    int? second,
+    int? millisecond,
+    int? microsecond,
+  }) {
+    _dateTime = new DateTime(
+      year != null ? year : _dateTime.year,
+      month != null ? month : _dateTime.month,
+      day != null ? day : _dateTime.day,
+      hour != null ? hour : _dateTime.hour,
+      minute != null ? minute : _dateTime.minute,
+      second != null ? second : _dateTime.second,
+      millisecond != null ? millisecond : _dateTime.millisecond,
+      microsecond != null ? microsecond : _dateTime.microsecond,
     );
 
     return this;
