@@ -6,6 +6,7 @@ import 'package:ticker/weekday.dart';
 
 class Ticker {
   late DateTime _dateTime;
+  static Ticker? _testNow;
 
   static const int SUNDAY = 7;
 
@@ -59,6 +60,10 @@ class Ticker {
 
   int get microsecondsSinceEpoch {
     return _dateTime.microsecondsSinceEpoch;
+  }
+
+  int get millisecondsSinceEpoch {
+    return _dateTime.millisecondsSinceEpoch;
   }
 
   DateTime get dateTime {
@@ -509,5 +514,29 @@ class Ticker {
   @override
   String toString() {
     return _dateTime.toString();
+  }
+
+  static void setTestNow([var ticker]) {
+    if (ticker != null) {
+      Ticker._testNow = Ticker(ticker);
+    } else {
+      Ticker._testNow = null;
+    }
+  }
+
+  static bool hasTestNow() {
+    return getTestNow() != null;
+  }
+
+  static Ticker? getTestNow() {
+    return Ticker._testNow;
+  }
+
+  static Ticker yesterday() {
+    return Ticker().subDay();
+  }
+
+  static parse(var ticker) {
+    return Ticker(ticker);
   }
 }
